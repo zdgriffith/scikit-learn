@@ -262,6 +262,25 @@ def test_calibration_curve():
                   normalize=False)
 
 
+def test_calibration_curve_sample_weights():
+    y_true = np.append(np.zeros(50), np.ones(50))
+    rng = np.random.RandomState(0)
+    y_pred = np.append(0.5*rng.rand(50), 0.5*rng.rand(50) + 0.5)
+    prob_true, prob_pred = calibration_curve(y_true, y_pred,
+                                             n_bins=5)
+    assert_almost_equal(prob_true, [0, 0, 0.68, 1, 1])
+    assert_almost_equal(prob_pred, [0.09089213, 0.30361744, 0.52374712,
+                                    0.69620911, 0.89601877])
+    weights = np.ones(100)
+    weights[[5, 55, 95]] = 100
+    prob_true, prob_pred = calibration_curve(y_true, y_pred,
+                                             sample_weight=weights,
+                                             n_bins=5)
+    assert_almost_equal(prob_true, [0, 0, 0.96412556, 1, 1])
+    assert_almost_equal(prob_pred, [0.09089213, 0.31868541, 0.57913216,
+                                    0.69620911, 0.89601877])
+
+
 def test_calibration_nan_imputer():
     """Test that calibration can accept nan"""
     X, y = make_classification(n_samples=10, n_features=2,
