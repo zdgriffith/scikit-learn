@@ -518,7 +518,8 @@ class _SigmoidCalibration(BaseEstimator, RegressorMixin):
         return 1. / (1. + np.exp(self.a_ * T + self.b_))
 
 
-def calibration_curve(y_true, y_prob, normalize=False, n_bins=5):
+def calibration_curve(y_true, y_prob, sample_weight=None,
+                      normalize=False, n_bins=5):
     """Compute true and predicted probabilities for a calibration curve.
 
      The method assumes the inputs come from a binary classifier.
@@ -534,6 +535,9 @@ def calibration_curve(y_true, y_prob, normalize=False, n_bins=5):
 
     y_prob : array, shape (n_samples,)
         Probabilities of the positive class.
+
+    sample_weight : array-like, shape = [n_samples] or None
+        Sample weights. If None, then samples are equally weighted.
 
     normalize : bool, optional, default=False
         Whether y_prob needs to be normalized into the bin [0, 1], i.e. is not
@@ -572,9 +576,19 @@ def calibration_curve(y_true, y_prob, normalize=False, n_bins=5):
     bins = np.linspace(0., 1. + 1e-8, n_bins + 1)
     binids = np.digitize(y_prob, bins) - 1
 
-    bin_sums = np.bincount(binids, weights=y_prob, minlength=len(bins))
-    bin_true = np.bincount(binids, weights=y_true, minlength=len(bins))
-    bin_total = np.bincount(binids, minlength=len(bins))
+    if sample_weight is not None:
+        bin_sums = np.bincount(binids,
+                               weights=np.multiply(y_prob, sample_weight),
+                               minlength=len(bins))
+        bin_true = np.bincount(binids,
+                               weights=np.multiply(y_true, sample_weight),
+                               minlength=len(bins))
+        bin_total = np.bincount(binids, weights=sample_weight,
+                                minlength=len(bins))
+    else:
+        bin_sums = np.bincount(binids, weights=y_prob, minlength=len(bins))
+        bin_true = np.bincount(binids, weights=y_true, minlength=len(bins))
+        bin_total = np.bincount(binids, minlength=len(bins))
 
     nonzero = bin_total != 0
     prob_true = (bin_true[nonzero] / bin_total[nonzero])
